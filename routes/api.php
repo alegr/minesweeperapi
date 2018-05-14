@@ -23,6 +23,8 @@ Route::get('/games', 'GamesController@index');
 Route::post('/games', 'GamesController@create');
 // Retrieve specific game
 Route::get('/games/{id}', 'GamesController@show');
+// Click on a cell of a specific active game
+Route::post('/games/{id}/click/{x}-{y}', 'GamesController@click');
 // Mark a cell of a specific active game as flag
 Route::post('/games/{id}/flag/{x}-{y}', 'GamesController@setDisplay');
 // Mark a cell of a specific active game as question mark

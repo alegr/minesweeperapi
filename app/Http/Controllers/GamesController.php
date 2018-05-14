@@ -273,6 +273,151 @@ class GamesController extends Controller
     }
 
     /**
+     * Click on a grid cell.
+     *
+     * @param  int  $game_id
+     * @param  int  $x
+     * @param  int  $y
+     * @return array
+     */
+    public function click($game_id, $x, $y) 
+    {
+        // Retrieve grid from database
+        $game = \App\Models\Game::find($game_id);
+
+        // Game not found
+        if (!$game) {
+            return $this->error(104, 'Game not found', 404);
+        }
+
+        // Game is not active anymore
+        if ($game->status != 'active') {
+            return $this->error(105, 'Game is not active anymore. You already '.$game->status.' this game.');
+        }
+
+        // Retrieve grid
+        $grid = $this->getGrid($game->id);
+
+        if (!isset($grid[$y]) || !isset($grid[$y][$x])) {
+            return $this->error(107, 'Coordinates out of boundaries');
+        }
+
+        // Check if cell is already clicked
+        if ($grid[$y][$x]['clicked'] == true) {
+            return $this->error(106, 'Cell is already clicked');
+        }
+
+        // Mine clicked
+        if ($grid[$y][$x]['value'] == 'M') {
+
+            // Update grid json
+            $grid[$y][$x]['clicked'] = true;
+            $grid[$y][$x]['display'] = 'M';
+            $this->setGrid($game_id, $grid);
+
+            $this->finishGame($game_id, 'lost');
+
+            // Update grid json
+            $this->setGrid($game_id, $grid);
+
+            return response()->json([
+                'success' => true, 
+                'data' => [
+                    'game' => \App\Models\Game::find($game_id), // Return updated game
+                    'grid' => $grid,
+                ]
+            ]);
+        }
+
+        // Remove any display this cell might have
+        $grid[$y][$x]['display'] = '';
+
+        // Call internal click method
+        $clicked = $this->_click($x, $y, $grid);
+
+        // Update free spaces
+        $game->free_spaces -= $clicked;
+        $game->save();
+
+        // Check if game has ended
+        if ($game->free_spaces == 0) {
+            $this->finishGame($game_id, 'won');
+            // Return updated game
+            $game = \App\Models\Game::find($game_id);
+        }
+
+        // Update grid json
+        $this->setGrid($game_id, $grid);
+
+        return response()->json([
+            'success' => true, 
+            'data' => [
+                'game' => $game,
+                'grid' => $grid,
+            ]
+        ]);
+    }
+
+    /**
+     * Clicks on a cell and for space cells recursively clicks on adjacent ones 
+     * from a starting point until there are no more free cells.
+     *
+     * @param  int  $x
+     * @param  int  $y
+     * @param  array  $grid
+     * @return void
+     */
+    private function _click ($x, $y, &$grid, $clicked=0) {
+
+        // Out of boundaries
+        if (!isset($grid[$y]) || !isset($grid[$y][$x])) {
+            return;
+        }
+
+        // Already clicked
+        if ($grid[$y][$x]['clicked']) {
+            return;
+        }
+
+        // Flagged or set as question mark, skip
+        if (in_array($grid[$y][$x]['display'], ['F','Q'])) {
+            return;
+        }
+
+        // Set cell as clicked
+        $grid[$y][$x]['clicked'] = true;
+        $grid[$y][$x]['display'] = $grid[$y][$x]['value'];
+
+        // Increment clicked cells
+        ++$clicked;
+
+        // For spaces, call this method again for all possible directions
+        if ($grid[$y][$x]['value'] == '_') {
+            foreach ($this->directions as $direction) {
+                $this->_click($x+$direction[0], $y+$direction[1], $grid, $clicked);
+            }            
+        }
+
+        return $clicked;
+    }
+
+    /**
+     * Completes a game.
+     *
+     * @param  int  $game_id
+     * @param  string  $status
+     * @return void
+     */
+    private function finishGame($game_id, $status) 
+    {
+        // Update game
+        \App\Models\Game::find($game_id)->update([
+            'status'        => $status,
+            'endtime'       => date("Y-m-d H:i:s"),
+        ]);
+    }
+
+    /**
      * Return grid for requested game.
      *
      * @param  int  $id
