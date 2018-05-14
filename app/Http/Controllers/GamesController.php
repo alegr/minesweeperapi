@@ -365,23 +365,23 @@ class GamesController extends Controller
      * @param  int  $x
      * @param  int  $y
      * @param  array  $grid
-     * @return void
+     * @return int 
      */
     private function _click ($x, $y, &$grid, $clicked=0) {
 
         // Out of boundaries
         if (!isset($grid[$y]) || !isset($grid[$y][$x])) {
-            return;
+            return $clicked;
         }
 
         // Already clicked
         if ($grid[$y][$x]['clicked']) {
-            return;
+            return $clicked;
         }
 
         // Flagged or set as question mark, skip
         if (in_array($grid[$y][$x]['display'], ['F','Q'])) {
-            return;
+            return $clicked;
         }
 
         // Set cell as clicked
@@ -394,7 +394,7 @@ class GamesController extends Controller
         // For spaces, call this method again for all possible directions
         if ($grid[$y][$x]['value'] == '_') {
             foreach ($this->directions as $direction) {
-                $this->_click($x+$direction[0], $y+$direction[1], $grid, $clicked);
+                $clicked = $this->_click($x+$direction[0], $y+$direction[1], $grid, $clicked);
             }            
         }
 
