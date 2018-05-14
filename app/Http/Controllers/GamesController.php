@@ -198,6 +198,34 @@ class GamesController extends Controller
     }
 
     /**
+     * Return information for a particular game with its grid.
+     *
+     * @param int $id
+     * @return object
+     */
+    public function show($id)
+    {
+        // Retrieve game model
+        $game = \App\Models\Game::find($id);
+
+        // Game not found
+        if (!$game) {
+            return $this->error(104, 'Game not found', 404);
+        }
+
+        // Retrieve game grid
+        $grid = $this->getGrid($game->id);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'game' => $game,
+                'grid' => $grid,
+            ],
+        ]);
+    }
+
+    /**
      * Return grid for requested game.
      *
      * @param  int  $id

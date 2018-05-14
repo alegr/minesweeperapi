@@ -21,3 +21,5 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 Route::get('/games', 'GamesController@index');
 // Create new game
 Route::post('/games', 'GamesController@create');
+// Retrieve specific game
+Route::get('/games/{id}', 'GamesController@show');
