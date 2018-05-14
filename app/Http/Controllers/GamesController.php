@@ -226,6 +226,53 @@ class GamesController extends Controller
     }
 
     /**
+     * Set a cell as flag or question mark
+     *
+     * @param int $id
+     * @return array
+     */
+    public function setDisplay($id, $x, $y, Request $request)
+    {
+        // Valid displays
+        $displays = ['flag' => 'F', 'questionmark' => 'Q'];
+
+        // Get requested display
+        $segments = $request->segments();
+        $display = $displays[$segments[count($segments)-2]];
+
+        // Retrieve game model
+        $game = \App\Models\Game::find($id);
+
+        // Game not found
+        if (!$game) {
+            return $this->error(104, 'Game not found', 404);
+        }
+
+        // Retrieve game grid
+        $grid = $this->getGrid($id);
+
+        if (!isset($grid[$y]) || !isset($grid[$y][$x])) {
+            return $this->error(107, 'Coordinates out of boundaries');
+        }
+
+        if ($grid[$y][$x]['clicked']) {
+            return $this->error(107, 'Cell already clicked');
+        }
+
+        $grid[$y][$x]['display'] = $display;
+
+        $this->setGrid($id, $grid);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'game' => $game,
+                'grid' => $grid,
+            ],
+        ]);
+    }
+
+    /**
      * Return grid for requested game.
      *
      * @param  int  $id
