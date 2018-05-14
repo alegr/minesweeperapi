@@ -19,3 +19,5 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 // List all games
 Route::get('/games', 'GamesController@index');
+// Create new game
+Route::post('/games', 'GamesController@create');
